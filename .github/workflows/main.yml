@@ -1,0 +1,44 @@
+name: Build Single Player SM64 APK
+on:
+  workflow_dispatch: # Allows you to manually trigger the build via a button
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Java Development Kit (JDK)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK Dependencies
+        uses: android-actions/setup-android@v3
+
+      - name: Setup NDK Component
+        run: |
+          sdkmanager --install "ndk;25.2.9519653"
+
+      - name: Extract Base Game Assets
+        run: |
+          ./getSDL.sh || true
+          mkdir -p app/jni/src
+          echo "Preparing Gradle workspace for compilation build..."
+
+      - name: Grant Execute Permission to Gradle Wrapper
+        run: chmod +x gradlew
+
+      - name: Compile Standalone Native APK
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Export Output Artifact to GitHub UI
+        uses: actions/upload-artifact@v4
+        with:
+          name: sm64ex-singleplayer-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          
